@@ -1,82 +1,51 @@
-# ---
-# jupyter:
-#   jupytext:
-#     text_representation:
-#       extension: .py
-#       format_name: light
-#       format_version: '1.5'
-#       jupytext_version: 1.14.0
-#   kernelspec:
-#     display_name: Python 3
-#     language: python
-#     name: python3
-# ---
-
-# +
-# !pip install streamlit pandas scipy
-
-# ab_test_app.py
 import streamlit as st
 import pandas as pd
-from scipy import stats
+from scipy.stats import ttest_ind
 
-# Function to perform A/B test analysis
-def perform_ab_test(data, group_col, metric_col):
-    group_a = data[data[group_col] == 'A'][metric_col]
-    group_b = data[data[group_col] == 'B'][metric_col]
-
-    # Perform t-test for independent samples
-    t_stat, p_value = stats.ttest_ind(group_a, group_b, equal_var=False)
-
+# Function to perform t-test
+def perform_t_test(group_a, group_b, metric):
+    # Perform independent t-test
+    t_stat, p_value = ttest_ind(group_a[metric], group_b[metric])
     return t_stat, p_value
+
+# Function to load CSV file
+def load_data(file):
+    data = pd.read_csv(file)
+    return data
+
+# Function to display A/B test results
+def display_results(group_a, group_b, metric, p_value):
+    st.write("### A/B Test Results:")
+    st.write(f"- **Group A ({group_a['name'].unique()[0]}):** Mean {metric}: {group_a[metric].mean()}")
+    st.write(f"- **Group B ({group_b['name'].unique()[0]}):** Mean {metric}: {group_b[metric].mean()}")
+    st.write(f"- **p-value:** {p_value}")
 
 # Streamlit app
 def main():
-    st.title('A/B Test Analysis')
+    st.title('A/B Test Evaluation App')
 
-    # File upload
-    st.sidebar.header('Upload CSV File')
-    uploaded_file = st.sidebar.file_uploader("Upload your A/B test data (.csv file)", type=['csv'])
+    # Upload CSV file
+    st.write("### Upload A/B Test Data")
+    file = st.file_uploader("Upload CSV", type=["csv"])
 
-    if uploaded_file is not None:
-        data = pd.read_csv(uploaded_file)
+    if file is not None:
+        data = load_data(file)
+        st.write("### A/B Test Data Preview")
+        st.write(data.head())
 
-        # Display the uploaded data
-        st.subheader('Uploaded Data')
-        st.write(data)
+        # Select test groups and metrics
+        st.write("### Configure A/B Test")
+        test_group_a = st.selectbox("Select Group A", data['group'].unique())
+        test_group_b = st.selectbox("Select Group B", data['group'].unique())
+        metric_to_evaluate = st.selectbox("Select Metric", data.columns)
 
-        # Select columns for analysis
-        st.sidebar.subheader('Select Columns')
-        group_col = st.sidebar.selectbox('Select Group Column', data.columns)
-        metric_col = st.sidebar.selectbox('Select Metric Column', data.columns)
+        group_a_data = data[data['group'] == test_group_a]
+        group_b_data = data[data['group'] == test_group_b]
 
-        # Perform analysis if columns are selected
-        if st.sidebar.button('Perform A/B Test'):
-            try:
-                t_stat, p_value = perform_ab_test(data, group_col, metric_col)
-                st.write(f"t-statistic: {t_stat}")
-                st.write(f"p-value: {p_value}")
+        # Perform t-test and display results
+        if st.button("Run A/B Test"):
+            t_statistic, p_value = perform_t_test(group_a_data, group_b_data, metric_to_evaluate)
+            display_results(group_a_data, group_b_data, metric_to_evaluate, p_value)
 
-                # Interpretation of the results
-                alpha = 0.05
-                if p_value < alpha:
-                    st.write("Statistically significant difference detected between groups A and B!")
-                else:
-                    st.write("No statistically significant difference detected between groups A and B.")
-            except Exception as e:
-                st.error(f"Error: {e}")
-
-# Run the app
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
-#streamlit run ab_test_app.py
-#streamlit run /opt/conda/lib/python3.7/site-packages/ipykernel_launcher.py
-
-# -
-
-
-
-
-
-
