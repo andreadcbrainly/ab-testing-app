@@ -1,5 +1,3 @@
-pip install streamlit
-
 import streamlit as st
 import pandas as pd
 from scipy.stats import ttest_ind
