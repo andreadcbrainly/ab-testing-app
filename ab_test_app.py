@@ -1,8 +1,4 @@
 !pip install streamlit
-!pip install python
-!pip install pandas
-!pip install scipy.stats
-
 
 import streamlit as st
 import pandas as pd
